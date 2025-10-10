@@ -2,11 +2,14 @@
   <div class="progression-builder">
     <h2>Build Your Progression</h2>
     <div class="chord-selector">
-      <select v-model="selectedNote">
-        <option v-for="n in notes" :key="n" :value="n">{{ n }}</option>
+      <select v-model="selectedKey">
+        <option v-for="k in keys" :key="k" :value="k">{{ k }}</option>
       </select>
-      <select v-model="selectedChordType">
-        <option v-for="ct in chordTypes" :key="ct.value" :value="ct.value">{{ ct.text }}</option>
+      <select v-model="selectedRomanNumeral">
+        <option v-for="rn in romanNumerals" :key="rn" :value="rn">{{ rn }}</option>
+      </select>
+      <select v-model.number="selectedOctave">
+        <option v-for="o in 7" :key="o" :value="o">{{ o }}</option>
       </select>
       <button @click="addChordToProgression">Add Chord</button>
     </div>
@@ -27,47 +30,78 @@
 <script setup lang="ts">
 import { ref, defineEmits, watch } from 'vue';
 
-const notes = ['Ab', 'A', 'A#', 'Bb', 'B', 'C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#'];
-const chordTypes = [
-  { text: 'Major', value: 'major' },
-  { text: 'Minor', value: 'minor' },
-  { text: 'Major 7th', value: 'major7' },
-  { text: 'Minor 7th', value: 'minor7' },
-  { text: 'Major 9th', value: 'major9' },
-  { text: 'Minor 9th', value: 'minor9' },
-  { text: 'Add 9', value: 'add9' },
-  { text: 'Major 11th', value: 'major11' },
-  { text: 'Minor 11th', value: 'minor11' },
-  { text: 'sus4', value: 'sus4' },
-  { text: 'sus2', value: 'sus2' },
-  { text: 'dim', value: 'dim' },
-  { text: 'aug', value: 'aug' },
-];
+const keys = ['Ab', 'A', 'A#', 'Bb', 'B', 'C', 'C#', 'Db', 'D', 'D#', 'Eb', 'E', 'F', 'F#', 'Gb', 'G', 'G#'];
+const romanNumerals = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii'];
 
-const selectedNote = ref('C');
-const selectedChordType = ref('major');
+const selectedKey = ref('C');
+const selectedRomanNumeral = ref('I');
+const selectedOctave = ref(4);
 const builtProgression = ref<string[]>([]);
 
 const emit = defineEmits(['progression-updated']);
 
-const addChordToProgression = () => {
-  const chordName = `${selectedNote.value}${selectedChordType.value === 'major' ? '' : selectedChordType.value}`;
-  builtProgression.value.push(chordName);
-  emit('progression-updated', builtProgression.value);
+const getScaleNotes = async (key: string) => {
+  try {
+    const encodedKey = encodeURIComponent(key);
+    const response = await fetch(`http://localhost:8000/scale/major/${encodedKey}`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to fetch scale');
+    }
+    const data = await response.json();
+    return data.scale;
+  } catch (err) {
+    console.error("Error fetching scale notes:", err);
+    return [];
+  }
+};
+
+const addChordToProgression = async () => {
+  const scaleNotes = await getScaleNotes(selectedKey.value);
+  if (scaleNotes.length === 0) return;
+
+  let chordName = '';
+  switch (selectedRomanNumeral.value) {
+    case 'I':
+      chordName = scaleNotes[0];
+      break;
+    case 'ii':
+      chordName = scaleNotes[1] + 'm';
+      break;
+    case 'iii':
+      chordName = scaleNotes[2] + 'm';
+      break;
+    case 'IV':
+      chordName = scaleNotes[3];
+      break;
+    case 'V':
+      chordName = scaleNotes[4];
+      break;
+    case 'vi':
+      chordName = scaleNotes[5] + 'm';
+      break;
+    case 'vii':
+      chordName = scaleNotes[6] + 'dim'; // Assuming diminished for vii
+      break;
+  }
+  if (chordName) {
+    builtProgression.value.push(chordName);
+    emit('progression-updated', { progression: builtProgression.value, octave: selectedOctave.value });
+  }
 };
 
 const removeChordFromProgression = (index: number) => {
   builtProgression.value.splice(index, 1);
-  emit('progression-updated', builtProgression.value);
+  emit('progression-updated', { progression: builtProgression.value, octave: selectedOctave.value });
 };
 
 const clearProgression = () => {
   builtProgression.value = [];
-  emit('progression-updated', builtProgression.value);
+  emit('progression-updated', { progression: builtProgression.value, octave: selectedOctave.value });
 };
 
-watch(builtProgression, (newVal) => {
-  emit('progression-updated', newVal);
+watch([builtProgression, selectedOctave], ([newProgression, newOctave]) => {
+  emit('progression-updated', { progression: newProgression, octave: newOctave });
 }, { deep: true });
 
 </script>
@@ -97,61 +131,40 @@ watch(builtProgression, (newVal) => {
 }
 
 .chord-selector button {
-  background-color: #007bff;
+  background: linear-gradient(to right, #ff69b4, #8a2be2); /* Pink to Purple Gradient */
   color: white;
   cursor: pointer;
   transition: background-color 0.2s;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .chord-selector button:hover {
-  background-color: #0056b3;
-}
-
-.current-progression h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-.progression-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 15px;
-  min-height: 40px; /* Ensure visibility even when empty */
-  border: 1px dashed #eee;
-  padding: 10px;
-  border-radius: 5px;
-}
-
-.built-chord {
-  background-color: #e9ecef;
-  padding: 8px 12px;
-  border-radius: 5px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  opacity: 0.9;
 }
 
 .built-chord button {
-  background: none;
+  background: linear-gradient(to right, #ff69b4, #8a2be2); /* Pink to Purple Gradient */
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   border: none;
-  color: #dc3545;
   font-weight: bold;
   cursor: pointer;
   padding: 0 5px;
 }
 
 .clear-progression-button {
-  background-color: #dc3545;
+  background: linear-gradient(to right, #ff69b4, #8a2be2); /* Pink to Purple Gradient */
   color: white;
   padding: 8px 12px;
   border-radius: 5px;
   border: none;
   cursor: pointer;
   transition: background-color 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .clear-progression-button:hover {
-  background-color: #c82333;
+  opacity: 0.9;
 }
 </style>

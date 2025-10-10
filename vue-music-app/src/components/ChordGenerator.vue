@@ -56,7 +56,8 @@ const getChord = async () => {
     return;
   }
   try {
-    const response = await fetch(`http://localhost:8000/chord/${chordType.value}/${note.value}`);
+    const encodedNote = encodeURIComponent(note.value);
+    const response = await fetch(`http://localhost:8000/chord/${chordType.value}/${encodedNote}`);
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.detail || 'Failed to fetch chord');
