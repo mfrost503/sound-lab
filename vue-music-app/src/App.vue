@@ -25,6 +25,7 @@ header {
   justify-content: space-between; /* Changed from flex-start */
   width: 100%;
   padding: 0 2rem; /* Adjusted padding */
+  border-bottom: 1px solid #a0a0a0; /* Mid-gray border */
 }
 
 header h1 {
@@ -47,6 +48,7 @@ nav a {
 }
 
 nav a.router-link-exact-active {
+  border: 2px solid white;
   background-color: rgba(255, 255, 255, 0.2);
 }
 </style>
