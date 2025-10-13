@@ -52,7 +52,7 @@ To run the full application (backend and frontend), follow these steps:
 
 1.  **Navigate to the project root directory**:
     ```sh
-    cd /Users/mfrost/learning/ai/gemini/music
+    cd /<path>/<to>/sound-labl
     ```
 2.  **Create and activate a Python virtual environment**:
     ```sh
@@ -73,7 +73,7 @@ To run the full application (backend and frontend), follow these steps:
 
 1.  **Navigate to the frontend directory**:
     ```sh
-    cd /Users/mfrost/learning/ai/gemini/music/vue-music-app
+    cd /<path>/<to>/sound-lab/vue-music-app
     ```
 2.  **Install frontend dependencies**:
     ```sh
